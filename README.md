@@ -29,11 +29,10 @@
 - Stealing cookies
 - HTTP is plain-text
 - Man-in-the-middle (we know NSA, etc. do this)
-- [Man-in-the-middle attack](./images/Man-In-The-Middle-Attack.png)
 - Firesheep: https://en.wikipedia.org/wiki/Firesheep
 - Solution: HTTPS (End-to-End Encryption)
 
-- [Man-In-The-Middle-Attack.png](./Man-In-The-Middle-Attack.png)
+- [Man-In-The-Middle-Attack.png](./images/Man-In-The-Middle-Attack.png)
 
 ## REST
 
@@ -97,11 +96,9 @@ You may need to access a nested resources. For example, you need to create a new
 ## Middleware
 
 - Middleware is a piece of software that sits in between the request and the response.
-- [middleware.png](./middleware.png)
+- [middleware.png](./images/middleware.png)
 (ref: https://developer.okta.com/blog/2018/09/13/build-and-understand-express-middleware-through-examples)
 
-
-- [Middleware](./images/middleware.png)
 
 ## Better Organize our Code
 
