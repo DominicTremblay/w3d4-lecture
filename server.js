@@ -2,14 +2,32 @@ const express = require('express');
 const morgan = require('morgan');
 const bodyParser = require('body-parser');
 const uuid = require('uuid/v4');
-const cookieParser = require('cookie-parser');
+// const cookieParser = require('cookie-parser');
+const cookieSession = require('cookie-session')
+
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 
 const PORT = process.env.PORT || 3005;
 
 // creating an Express app
 const app = express();
 
-app.use(cookieParser());
+// app.use(cookieParser());
+
+// Encrypted cookies
+app.use(cookieSession({
+  name: 'session',
+  keys: ['f080ac7b-b838-4c5f-a1f4-b0a9fee10130', 'c3fb18be-448b-4f6e-a377-49373e9b7e1a']
+}))
+
+// creating a middleware
+const currentUser =  (req, res, next) => {
+  req.currentUser = usersDb[req.session['user_id']];
+  next()
+}
+
+app.use(currentUser)
 
 // morgan middleware allows to log the request in the terminal
 app.use(morgan('short'));
@@ -60,13 +78,13 @@ const usersDb = {
     id: 'eb849b1f',
     name: 'Kent Cook',
     email: 'really.kent.cook@kitchen.com',
-    password: 'cookinglessons',
+    password: bcrypt.hashSync('cookinglessons', saltRounds),
   },
   '2': {
     id: '1dc937ec',
     name: 'Phil A. Mignon',
     email: 'good.philamignon@steak.com',
-    password: 'meatlover',
+    password: bcrypt.hashSync('meatlover', saltRounds),
   },
 };
 
@@ -101,7 +119,7 @@ const addNewUser = (name, email, password) => {
     id: userId,
     name,
     email,
-    password,
+    password: bcrypt.hashSync(password, saltRounds),
   };
 
   // Add the user Object into the usersDb
@@ -131,7 +149,7 @@ const authenticateUser = (email, password) => {
   const user = findUserByEmail(email);
 
   // if we got a user back and the passwords match then return the userObj
-  if (user && user.password === password) {
+  if (user && bcrypt.compareSync(password, user.password)) {
     // user is authenticated
     return user;
   } else {
@@ -164,7 +182,8 @@ app.post('/register', (req, res) => {
   if (!user) {
     const userId = addNewUser(name, email, password);
     // setCookie with the user id
-    res.cookie('user_id', userId);
+    // res.cookie('user_id', userId);
+    req.session['user_id'] = userId;
 
     // redirect to /quotes
     res.redirect('/quotes');
@@ -196,7 +215,8 @@ app.post('/login', (req, res) => {
 
   // if authenticated, set cookie with its user id and redirect
   if (user) {
-    res.cookie('user_id', user.id);
+    // res.cookie('user_id', user.id);
+    req.session['user_id'] = user.id;
     res.redirect('/quotes');
   } else {
     // otherwise we send an error message
@@ -206,7 +226,7 @@ app.post('/login', (req, res) => {
 
 app.post('/logout', (req, res) => {
   // clear the cookies
-  res.cookie('user_id', null);
+  req.session['user_id'] = null;
 
   // redirect to /quotes
   res.redirect('/quotes');
@@ -219,12 +239,17 @@ app.post('/logout', (req, res) => {
 // GET /quotes
 
 app.get('/quotes', (req, res) => {
+
+  console.log("Current user:", req.currentUser);
+
   const quoteList = Object.values(movieQuotesDb);
 
   // get the current user
   // read the user id value from the cookies
 
-  const userId = req.cookies['user_id'];
+  // const userId = req.cookies['user_id'];
+
+  const userId = req.session['user_id'];
 
   const loggedInUser = usersDb[userId];
 
@@ -241,7 +266,8 @@ app.get('/quotes/new', (req, res) => {
   // get the current user
   // read the user id value from the cookies
 
-  const userId = req.cookies['user_id'];
+  // const userId = req.cookies['user_id'];
+  const userId = req.session['user_id'];
 
   const loggedInUser = usersDb[userId];
 
@@ -277,7 +303,8 @@ app.get('/quotes/:id', (req, res) => {
   // get the current user
   // read the user id value from the cookies
 
-  const userId = req.cookies['user_id'];
+  // const userId = req.cookies['user_id'];
+  const userId = req.session['user_id'];
 
   const loggedInUser = usersDb[userId];
   const templateVars = {
