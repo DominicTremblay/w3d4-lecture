@@ -70,6 +70,7 @@ http protocol gives us verbs
 - collections vs single entity
 - which one?
 
+
 ### End Points
 
 By following REST principles, it allows us to design our end points:
@@ -82,7 +83,7 @@ By following REST principles, it allows us to design our end points:
 | Create a new quote                    | POST      | post '/quotes            |
 | Display the form for updating a quote | GET       | get '/quotes/:id/update' |
 | Update the quotes                     | PUT       | put '/quotes/:id         |
-| Deleting a specific quote             | DELETE    | delete '/quotes:id'      |
+| Deleting a specific quote             | DELETE    | delete '/quotes/:id'      |
 
 #### Nested Resources
 
@@ -145,6 +146,7 @@ GraphQL is an open-source data query and manipulation language for APIs, and a r
 ## Alternatives to Express
 
 Koa.js (Javascript) - https://koajs.com/
+Sails.js(Javascrpt) - https://sailsjs.com/
 Sinatra (Ruby) - http://sinatrarb.com/
 Flask (Python) - http://flask.pocoo.org/
 
