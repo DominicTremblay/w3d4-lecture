@@ -79,10 +79,10 @@ By following REST principles, it allows us to design our end points:
 | List all quotes                       | GET       | get '/quotes'            |
 | Get a specific quote                  | GET       | get '/quotes/:id'        |
 | Display the new form                  | GET       | get '/quotes/new         |
-| Create a new quote                    | POST      | post '/quotes            |
+| Create a new quote                    | POST      | post '/quotes'           |
 | Display the form for updating a quote | GET       | get '/quotes/:id/update' |
 | Update the quotes                     | PUT       | put '/quotes/:id         |
-| Deleting a specific quote             | DELETE    | delete '/quotes:id'      |
+| Deleting a specific quote             | DELETE    | delete '/quotes/:id'     |
 
 #### Nested Resources
 
@@ -98,10 +98,9 @@ You may need to access a nested resources. For example, you need to create a new
 
 - Middleware is a piece of software that sits in between the request and the response.
 - [middleware.png](./middleware.png)
-(ref: https://developer.okta.com/blog/2018/09/13/build-and-understand-express-middleware-through-examples)
+  (ref: https://developer.okta.com/blog/2018/09/13/build-and-understand-express-middleware-through-examples)
 
-
-- [Middleware](./images/middleware.png)
+* [Middleware](./images/middleware.png)
 
 ## Better Organize our Code
 
