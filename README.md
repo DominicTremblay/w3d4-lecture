@@ -2,12 +2,11 @@
 
 ## Content
 
-- SECURITY
+- Questions?
+- Security
 - REST
 - Middleware
 - Organizing our code
-- Build JSON API
-- Alternative to Express
 
 ## Security
 
