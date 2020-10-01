@@ -14,7 +14,7 @@
 ### Security Issue #1
 
 - Storing Passwords - why not plaintext
-- How to encrypt passwords (bcrypt)
+- How to hash passwords (bcrypt)
 - hashing
 
 - [bcrypt](./images/bcrypt.jpg)
