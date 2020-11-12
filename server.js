@@ -2,7 +2,7 @@ const express = require('express');
 const morgan = require('morgan');
 const bodyParser = require('body-parser');
 const uuid = require('uuid/v4');
-const cookieSession = require('cookie-session')
+const cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 
@@ -13,16 +13,21 @@ const app = express();
 
 // app.use(cookieParser());
 
-app.use(cookieSession({
-  name: 'session',
-  keys: ['key1', 'key2']
-}));
+app.use(
+  cookieSession({
+    name: 'session',
+    keys: ['key1', 'key2'],
+  })
+);
 
 // morgan middleware allows to log the request in the terminal
 app.use(morgan('short'));
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }));
+
+// parse application/json
+app.use(bodyParser.json());
 
 // Static assets (images, css files) are being served from the public folder
 app.use(express.static('public'));
@@ -227,43 +232,17 @@ app.post('/logout', (req, res) => {
 // READ
 // GET /quotes
 
-app.get('/quotes', (req, res) => {
+app.get('/api/v1/quotes', (req, res) => {
   const quoteList = Object.values(movieQuotesDb);
 
-  // get the current user
-  // read the user id value from the cookies
-
-  const userId = req.session['user_id'];
-
-  const loggedInUser = usersDb[userId];
-
-  const templateVars = { quotesArr: quoteList, currentUser: loggedInUser };
-
-  res.render('quotes', templateVars);
-});
-
-// Display the add quote form
-// READ
-// GET /quotes/new
-
-app.get('/quotes/new', (req, res) => {
-  // get the current user
-  // read the user id value from the cookies
-
-  const userId = req.session['user_id'];
-
-  const loggedInUser = usersDb[userId];
-
-  const templateVars = { currentUser: loggedInUser };
-
-  res.render('new_quote', templateVars);
+  res.json(quoteList);
 });
 
 // Add a new quote
 // CREATE
 // POST /quotes
 
-app.post('/quotes', (req, res) => {
+app.post('/api/v1/quotes', (req, res) => {
   // extract the quote content from the form.
   // content of the form is contained in an object call req.body
   // req.body is given by the bodyParser middleware
@@ -271,31 +250,20 @@ app.post('/quotes', (req, res) => {
 
   // Add a new quote in movieQuotesDb
 
-  createNewQuote(quoteStr);
+  const quoteId = createNewQuote(quoteStr);
 
-  // redirect to '/quotes'
-  res.redirect('/quotes');
+  res.json(movieQuotesDb[quoteId]);
 });
 
 // Edit a quote
 
 // Display the form
 // GET /quotes/:id
-app.get('/quotes/:id', (req, res) => {
+app.get('/api/v1/quotes/:id', (req, res) => {
   const quoteId = req.params.id;
-  // get the current user
-  // read the user id value from the cookies
 
-  const userId = req.session['user_id'];
+  res.json(movieQuotesDb[quoteId]);
 
-  const loggedInUser = usersDb[userId];
-  const templateVars = {
-    quoteObj: movieQuotesDb[quoteId],
-    currentUser: loggedInUser,
-  };
-
-  // render the show page
-  res.render('quote_show', templateVars);
 });
 
 // Update the quote in the movieQuotesDb
