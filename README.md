@@ -6,6 +6,7 @@
 - REST
 - Middleware
 
+[Slides Here](./W3D4-Security.pdf)
 
 ## Security
 
@@ -112,21 +113,6 @@ You may need to access a nested resources. For example, you need to create a new
 ### REST
 - About REST and naming convention : https://restfulapi.net/resource-naming/
 
-<<<<<<< HEAD
 ### Middleware
 - Method override : https://www.npmjs.com/package/method-override
 - Express middleware : https://expressjs.com/en/guide/using-middleware.html
-=======
-### Bcrypt
-https://auth0.com/blog/hashing-in-action-understanding-bcrypt/
-https://en.wikipedia.org/wiki/Bcrypt
-https://dev.to/sylviapap/bcrypt-explained-4k5c
-
-About REST and naming convention : https://restfulapi.net/resource-naming/
-Express modular routing (end of document) : http://expressjs.com/en/guide/routing.html#routing
-Method override : https://www.npmjs.com/package/method-override
-Express middleware : https://expressjs.com/en/guide/using-middleware.html
-JSON APIs responses : https://jsonapi.org/examples
-WordPress REST API : https://developer.wordpress.org/rest-api/
-https://restfulapi.net/
->>>>>>> aff0697493ffb87e8537f07428a905751eb3d1df
