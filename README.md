@@ -5,9 +5,7 @@
 - SECURITY
 - REST
 - Middleware
-- Organizing our code
-- Build JSON API
-- Alternative to Express
+
 
 ## Security
 
@@ -103,69 +101,17 @@ You may need to access a nested resources. For example, you need to create a new
 
 - [Middleware](./images/middleware.png)
 
-## Better Organize our Code
-
-We can better organize our code to make more modular and to clean up our server file.
-
-- Routing
-
-  - We externalize to our routes into specific files
-  - All the routes for a particular resource would be in one file
-
-- We can use modules to externalize:
-
-  - our DB files
-  - our helper functions
-
-### Common Data Format
-
-In the case of an API, what do we expect when we do
-
-GET users => a list of users returned with a JSON format
-
-```json
-[
-  {"id": "1",
-  "first_name": "Clark",
-  "last_name": "Kent",
-  ...},
-  {"id": "2",
-  "first_name": "Bruce",
-  "last_name": "Wayne",
-  ...},
-]
-```
-
-### REST alternatives
-
-- GraphQL
-
-GraphQL is an open-source data query and manipulation language for APIs, and a runtime for fulfilling queries with existing data. GraphQL was developed internally by Facebook in 2012 before being publicly released in 2015.
-
-## Alternatives to Express
-
-Koa.js (Javascript) - https://koajs.com/
-Sinatra (Ruby) - http://sinatrarb.com/
-Flask (Python) - http://flask.pocoo.org/
-
-## Back-End API
-
-- An API will only deliver data, typically in JSON
-- The routes will add a version of the API
-
-For example, if we were building an API, our routes would be modified.
-
-- `GET /api/1.0/posts`
-- `GET /api/1.0/posts/1`
-  ...
 
 ## References
 
-Interesting links
-About REST and naming convention : https://restfulapi.net/resource-naming/
-Express modular routing (end of document) : http://expressjs.com/en/guide/routing.html#routing
-Method override : https://www.npmjs.com/package/method-override
-Express middleware : https://expressjs.com/en/guide/using-middleware.html
-JSON APIs responses : https://jsonapi.org/examples
-WordPress REST API : https://developer.wordpress.org/rest-api/
-https://restfulapi.net/
+### Bcrypt
+- https://auth0.com/blog/hashing-in-action-understanding-bcrypt/
+- https://en.wikipedia.org/wiki/Bcrypt
+- https://dev.to/sylviapap/bcrypt-explained-4k5c
+
+### REST
+- About REST and naming convention : https://restfulapi.net/resource-naming/
+
+### Middleware
+- Method override : https://www.npmjs.com/package/method-override
+- Express middleware : https://expressjs.com/en/guide/using-middleware.html
