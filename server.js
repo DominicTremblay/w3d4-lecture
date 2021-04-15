@@ -1,14 +1,23 @@
 const express = require('express');
 const morgan = require('morgan');
 const uuid = require('uuid/v4');
-const cookieParser = require('cookie-parser');
+// const cookieParser = require('cookie-parser');
+const cookieSession = require('cookie-session');
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 
 const PORT = process.env.PORT || 3000;
 
 // creating an Express app
 const app = express();
 
-app.use(cookieParser());
+// app.use(cookieParser());
+app.use(
+  cookieSession({
+    name: 'session',
+    keys: ['key1', 'key2'],
+  })
+);
 
 // morgan middleware allows to log the request in the terminal
 app.use(morgan('short'));
@@ -59,15 +68,32 @@ const usersDb = {
     id: 1,
     name: 'Kent Cook',
     email: 'really.kent.cook@kitchen.com',
-    password: 'cookinglessons',
+    password: bcrypt.hashSync('cookinglessons', saltRounds),
   },
   2: {
     id: 2,
     name: 'Phil A. Mignon',
     email: 'good.philamignon@steak.com',
-    password: 'meatlover',
+    password: bcrypt.hashSync('meatlover', saltRounds),
   },
 };
+
+// Custom Middleware to get the currently logged in user
+
+const userParser = (req, res, next) => {
+  // some work here
+
+  const userId = req.session['user_id'];
+
+  const user = usersDb[userId];
+
+  req.user = user;
+
+  // when we're done
+  next();
+};
+
+app.use(userParser);
 
 const createNewQuote = (content) => {
   const quoteId = uuid().substr(0, 8);
@@ -100,7 +126,7 @@ const addNewUser = (name, email, password) => {
     id: userId,
     name,
     email,
-    password,
+    password: bcrypt.hashSync(password, saltRounds),
   };
 
   // Add the user Object into the usersDb
@@ -130,7 +156,7 @@ const authenticateUser = (email, password) => {
   const user = findUserByEmail(email);
 
   // if we got a user back and the passwords match then return the userObj
-  if (user && user.password === password) {
+  if (user && bcrypt.compareSync(password, user.password)) {
     // user is authenticated
     return user;
   } else {
@@ -163,7 +189,7 @@ app.post('/register', (req, res) => {
   if (!user) {
     const userId = addNewUser(name, email, password);
     // setCookie with the user id
-    res.cookie('user_id', userId);
+    req.session['user_id'] = userId;
 
     // redirect to /quotes
     res.redirect('/quotes');
@@ -195,7 +221,7 @@ app.post('/login', (req, res) => {
 
   // if authenticated, set cookie with its user id and redirect
   if (user) {
-    res.cookie('user_id', user.id);
+    req.session['user_id'] = user.id;
     res.redirect('/quotes');
   } else {
     // otherwise we send an error message
@@ -205,7 +231,8 @@ app.post('/login', (req, res) => {
 
 app.post('/logout', (req, res) => {
   // clear the cookies
-  res.clearCookie('user_id');
+  // res.clearCookie('user_id');
+  req.session['user_id'] = null;
 
   // redirect to /quotes
   res.redirect('/quotes');
@@ -218,20 +245,18 @@ app.post('/logout', (req, res) => {
 // GET /quotes
 
 app.get('/quotes', (req, res) => {
-
-  console.log({currentUser: req.user});
-
+  console.log({ currentUser: req.user });
 
   const quoteList = Object.values(movieQuotesDb);
 
   // get the current user
   // read the user id value from the cookies
 
-  const userId = req.cookies['user_id'];
+  // const userId = req.session['user_id'];
 
-  const loggedInUser = usersDb[userId];
+  // const loggedInUser = usersDb[userId];
 
-  const templateVars = { quotesArr: quoteList, currentUser: loggedInUser };
+  const templateVars = { quotesArr: quoteList, currentUser: req.user };
 
   res.render('quotes', templateVars);
 });
@@ -244,11 +269,11 @@ app.get('/quotes/new', (req, res) => {
   // get the current user
   // read the user id value from the cookies
 
-  const userId = req.cookies['user_id'];
+  // const userId = req.session['user_id'];
 
-  const loggedInUser = usersDb[userId];
+  // const loggedInUser = usersDb[userId];
 
-  const templateVars = { currentUser: loggedInUser };
+  const templateVars = { currentUser: req.user };
 
   res.render('new_quote', templateVars);
 });

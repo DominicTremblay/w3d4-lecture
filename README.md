@@ -162,6 +162,7 @@ For example, if we were building an API, our routes would be modified.
 ## References
 
 Interesting links
+- [Storing Sessions in Express Apps](https://medium.com/dataseries/storing-sessions-in-express-apps-a67f29a09cc6)
 About REST and naming convention : https://restfulapi.net/resource-naming/
 Express modular routing (end of document) : http://expressjs.com/en/guide/routing.html#routing
 Method override : https://www.npmjs.com/package/method-override
