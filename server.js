@@ -1,14 +1,24 @@
 const express = require('express');
 const morgan = require('morgan');
-const uuid = require('uuid/v4');
-const cookieParser = require('cookie-parser');
+
+const cookieSession = require('cookie-session')
+const { createNewQuote, updateQuote } = require('./helpers/dbHelpers');
+const authenticateRoutes = require('./routes/authenticate');
+const saltRounds = 10;
+const bcrypt = require('bcrypt');
+var methodOverride = require('method-override')
 
 const PORT = process.env.PORT || 3000;
 
 // creating an Express app
 const app = express();
 
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['key1', 'key2']
+}));
+
+app.use(methodOverride('_method'))
 
 // morgan middleware allows to log the request in the terminal
 app.use(morgan('short'));
@@ -59,157 +69,18 @@ const usersDb = {
     id: 1,
     name: 'Kent Cook',
     email: 'really.kent.cook@kitchen.com',
-    password: 'cookinglessons',
+    password: bcrypt.hashSync('cookinglessons', saltRounds),
   },
   2: {
     id: 2,
     name: 'Phil A. Mignon',
     email: 'good.philamignon@steak.com',
-    password: 'meatlover',
+    password: bcrypt.hashSync('meatlover', saltRounds),
   },
 };
 
-const createNewQuote = (content) => {
-  const quoteId = uuid().substr(0, 8);
-
-  // creating the new quote object
-  const newQuote = {
-    id: quoteId,
-    quote: content,
-  };
-
-  // Add the newQuote object to movieQuotesDb
-
-  movieQuotesDb[quoteId] = newQuote;
-
-  return quoteId;
-};
-
-const updateQuote = (quoteId, content) => {
-  // updating the quote key in the quote object
-  movieQuotesDb[quoteId].quote = content;
-
-  return true;
-};
-
-const addNewUser = (name, email, password) => {
-  // Generate a random id
-  const userId = uuid().substr(0, 8);
-
-  const newUserObj = {
-    id: userId,
-    name,
-    email,
-    password,
-  };
-
-  // Add the user Object into the usersDb
-
-  usersDb[userId] = newUserObj;
-
-  // return the id of the user
-
-  return userId;
-};
-
-const findUserByEmail = (email) => {
-  // loop through the usersDb object
-  for (let userId in usersDb) {
-    // compare the emails, if they match return the user obj
-    if (usersDb[userId].email === email) {
-      return usersDb[userId];
-    }
-  }
-
-  // after the loop, return false
-  return false;
-};
-
-const authenticateUser = (email, password) => {
-  // retrieve the user with that email
-  const user = findUserByEmail(email);
-
-  // if we got a user back and the passwords match then return the userObj
-  if (user && user.password === password) {
-    // user is authenticated
-    return user;
-  } else {
-    // Otherwise return false
-    return false;
-  }
-};
-
-// Authentication
-
-// Display the register form
-app.get('/register', (req, res) => {
-  const templateVars = { currentUser: null };
-  res.render('register', templateVars);
-});
-
-// Get the info from the register form
-app.post('/register', (req, res) => {
-  // extract the info from the form
-  const name = req.body.name;
-  const email = req.body.email;
-  const password = req.body.password;
-
-  // check if the user is not already in the database
-
-  const user = findUserByEmail(email);
-
-  // if not in the db, it'ok to add the user to the db
-
-  if (!user) {
-    const userId = addNewUser(name, email, password);
-    // setCookie with the user id
-    res.cookie('user_id', userId);
-
-    // redirect to /quotes
-    res.redirect('/quotes');
-  } else {
-    res.status(403).send('Sorry, the user is already registered');
-  }
-});
-
-// Display the login form
-app.get('/login', (req, res) => {
-  const templateVars = { currentUser: null };
-  res.render('login', templateVars);
-});
-
-// this end point is for checking the content of usersDb
-// remove when cleaning up the code
-app.get('/users', (req, res) => {
-  res.json(usersDb);
-});
-
-// Authenticate the user
-app.post('/login', (req, res) => {
-  // extract the info from the form
-  const email = req.body.email;
-  const password = req.body.password;
-
-  // Authenticate the user
-  const user = authenticateUser(email, password);
-
-  // if authenticated, set cookie with its user id and redirect
-  if (user) {
-    res.cookie('user_id', user.id);
-    res.redirect('/quotes');
-  } else {
-    // otherwise we send an error message
-    res.status(401).send('Wrong credentials!');
-  }
-});
-
-app.post('/logout', (req, res) => {
-  // clear the cookies
-  res.clearCookie('user_id');
-
-  // redirect to /quotes
-  res.redirect('/quotes');
-});
+// activate the authenticateRoutes => telling express we want to use those routes
+app.use('/', authenticateRoutes(usersDb));
 
 // CRUD operations
 
@@ -218,14 +89,12 @@ app.post('/logout', (req, res) => {
 // GET /quotes
 
 app.get('/quotes', (req, res) => {
-
-
   const quoteList = Object.values(movieQuotesDb);
 
   // get the current user
   // read the user id value from the cookies
 
-  const userId = req.cookies['user_id'];
+  const userId = req.session['user_id'];
 
   const loggedInUser = usersDb[userId];
 
@@ -242,7 +111,7 @@ app.get('/quotes/new', (req, res) => {
   // get the current user
   // read the user id value from the cookies
 
-  const userId = req.cookies['user_id'];
+  const userId = req.session['user_id'];
 
   const loggedInUser = usersDb[userId];
 
@@ -263,7 +132,7 @@ app.post('/quotes', (req, res) => {
 
   // Add a new quote in movieQuotesDb
 
-  createNewQuote(quoteStr);
+  createNewQuote(quoteStr, movieQuotesDb);
 
   // redirect to '/quotes'
   res.redirect('/quotes');
@@ -302,14 +171,14 @@ app.post('/quotes/:id', (req, res) => {
 
   // Update the quote in movieQuotesDb
 
-  updateQuote(quoteId, quoteStr);
+  updateQuote(quoteId, quoteStr, movieQuotesDb);
 
   // redirect to '/quotes'
   res.redirect('/quotes');
 });
 
 // DELETE
-app.post('/quotes/:id/delete', (req, res) => {
+app.delete('/quotes/:id', (req, res) => {
   const quoteId = req.params.id;
 
   delete movieQuotesDb[quoteId];
