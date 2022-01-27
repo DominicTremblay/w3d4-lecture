@@ -1,14 +1,22 @@
 const express = require('express');
 const morgan = require('morgan');
 const uuid = require('uuid/v4');
-const cookieParser = require('cookie-parser');
+// const cookieParser = require('cookie-parser');
+const cookieSession = require('cookie-session')
+const bcrypt = require('bcryptjs');
+const salt = bcrypt.genSaltSync(10);
 
 const PORT = process.env.PORT || 3000;
 
 // creating an Express app
 const app = express();
 
-app.use(cookieParser());
+// app.use(cookieParser());
+
+app.use(cookieSession({
+  name: 'session',
+  keys: ['861a4ba3-7bfe-420a-9ce2-a49a25c61645', '4e32a74a-b55b-4a50-a8cc-6384ce6a5dfc']
+}));
 
 // morgan middleware allows to log the request in the terminal
 app.use(morgan('short'));
@@ -59,15 +67,30 @@ const usersDb = {
     id: 1,
     name: 'Kent Cook',
     email: 'really.kent.cook@kitchen.com',
-    password: 'cookinglessons',
+    password: bcrypt.hashSync('cookinglessons', salt),
   },
   2: {
     id: 2,
     name: 'Phil A. Mignon',
     email: 'good.philamignon@steak.com',
-    password: 'meatlover',
+    password:  bcrypt.hashSync('meatlover', salt),
   },
 };
+
+
+// Our own custom middleware function
+
+const currentUser = (req, res, next) => {
+
+  const userId = req.session['user_id'];
+
+  req.currentUser = usersDb[userId];
+
+  next(); // call the next middleware in the chain
+
+}
+
+app.use(currentUser);
 
 const createNewQuote = (content) => {
   const quoteId = uuid().substr(0, 8);
@@ -100,7 +123,7 @@ const addNewUser = (name, email, password) => {
     id: userId,
     name,
     email,
-    password,
+    password: bcrypt.hashSync(password, salt) // Hasing the password
   };
 
   // Add the user Object into the usersDb
@@ -129,8 +152,10 @@ const authenticateUser = (email, password) => {
   // retrieve the user with that email
   const user = findUserByEmail(email);
 
+  console.log("FORM PASSWORD:", password, "DB PASSWORD:", user.password);
+
   // if we got a user back and the passwords match then return the userObj
-  if (user && user.password === password) {
+  if (user && bcrypt.compareSync(password, user.password)) {
     // user is authenticated
     return user;
   } else {
@@ -138,6 +163,8 @@ const authenticateUser = (email, password) => {
     return false;
   }
 };
+
+
 
 // Authentication
 
@@ -163,7 +190,10 @@ app.post('/register', (req, res) => {
   if (!user) {
     const userId = addNewUser(name, email, password);
     // setCookie with the user id
-    res.cookie('user_id', userId);
+    // res.cookie('user_id', userId);
+
+
+    req.session['user_id'] = userId; // storing the user id value with cookie session
 
     // redirect to /quotes
     res.redirect('/quotes');
@@ -195,7 +225,7 @@ app.post('/login', (req, res) => {
 
   // if authenticated, set cookie with its user id and redirect
   if (user) {
-    res.cookie('user_id', user.id);
+    req.session['user_id'] = user.id;
     res.redirect('/quotes');
   } else {
     // otherwise we send an error message
@@ -205,7 +235,8 @@ app.post('/login', (req, res) => {
 
 app.post('/logout', (req, res) => {
   // clear the cookies
-  res.clearCookie('user_id');
+  // res.clearCookie('user_id');
+  req.session['user_id'] = null; // logout with cookie session
 
   // redirect to /quotes
   res.redirect('/quotes');
@@ -225,11 +256,16 @@ app.get('/quotes', (req, res) => {
   // get the current user
   // read the user id value from the cookies
 
-  const userId = req.cookies['user_id'];
+  // const userId = req.cookies['user_id'];
 
-  const loggedInUser = usersDb[userId];
+  console.log("Current user:", req.currentUser);
 
-  const templateVars = { quotesArr: quoteList, currentUser: loggedInUser };
+
+  // const userId = req.session['user_id'];
+
+  // const loggedInUser = usersDb[userId];
+
+  const templateVars = { quotesArr: quoteList, currentUser: req.currentUser };
 
   res.render('quotes', templateVars);
 });
@@ -242,7 +278,7 @@ app.get('/quotes/new', (req, res) => {
   // get the current user
   // read the user id value from the cookies
 
-  const userId = req.cookies['user_id'];
+  const userId = req.session['user_id'];;
 
   const loggedInUser = usersDb[userId];
 
@@ -278,7 +314,7 @@ app.get('/quotes/:id', (req, res) => {
   // get the current user
   // read the user id value from the cookies
 
-  const userId = req.cookies['user_id'];
+  const userId = req.session['user_id'];
 
   const loggedInUser = usersDb[userId];
   const templateVars = {
