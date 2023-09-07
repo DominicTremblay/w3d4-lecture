@@ -2,6 +2,12 @@ const express = require('express');
 const morgan = require('morgan');
 const uuid = require('uuid/v4');
 const cookieParser = require('cookie-parser');
+const bcrypt = require('bcryptjs');
+const cookieSession = require('cookie-session');
+const salt = bcrypt.genSaltSync(10);
+const movieQuotesDb = require('./db/moviesDb');
+const quotesRouter = require('./routes/quotesRouter');
+
 
 const PORT = process.env.PORT || 3000;
 
@@ -13,8 +19,22 @@ app.use(cookieParser());
 // morgan middleware allows to log the request in the terminal
 app.use(morgan('short'));
 
+// middleware for cookie session
+app.use(
+  cookieSession({
+    name: 'session',
+    keys: [
+      'bed2393f-0a58-4ebe-8d1c-c1543a58bb99',
+      'cdc9e3c3-2914-4d79-ac46-af2c3c1e17d9',
+    ],
+  })
+);
+
 // parse application/x-www-form-urlencoded
 app.use(express.urlencoded({ extended: false }));
+
+// enable the quote router
+app.use('/quotes', quotesRouter);
 
 // Static assets (images, css files) are being served from the public folder
 app.use(express.static('public'));
@@ -22,29 +42,23 @@ app.use(express.static('public'));
 // Setting ejs as the template engine
 app.set('view engine', 'ejs');
 
-// In memory database
-const movieQuotesDb = {
-  d9424e04: {
-    id: 'd9424e04',
-    quote: 'Why so serious?',
-  },
-  '27b03e95': {
-    id: '27b03e95',
-    quote: 'YOU SHALL NOT PASS!',
-  },
-  '5b2cdbcb': {
-    id: '5b2cdbcb',
-    quote: "It's called a hustle, sweetheart.",
-  },
-  '917d445c': {
-    id: '917d445c',
-    quote: 'The greatest teacher, failure is.',
-  },
-  '4ad11feb': {
-    id: '4ad11feb',
-    quote: 'Speak Friend and Enter',
-  },
+// Middleware function to retrive the logged in user
+
+const getCurrentUser = (req, res, next) => {
+  // get the user id from cookies
+  const userId = req.session['user_id'];
+
+  // get the user from db
+  const user = usersDb[userId];
+
+  // attache the user to the req
+  req.user = user;
+
+  // pass on to the next middleware
+  next();
 };
+
+app.use(getCurrentUser);
 
 const quoteComments = {
   '70fcf8bd': {
@@ -59,37 +73,14 @@ const usersDb = {
     id: 1,
     name: 'Kent Cook',
     email: 'really.kent.cook@kitchen.com',
-    password: 'cookinglessons',
+    password: bcrypt.hashSync('cookinglessons', salt),
   },
   2: {
     id: 2,
     name: 'Phil A. Mignon',
     email: 'good.philamignon@steak.com',
-    password: 'meatlover',
+    password: bcrypt.hashSync('meatlover', salt),
   },
-};
-
-const createNewQuote = (content) => {
-  const quoteId = uuid().substr(0, 8);
-
-  // creating the new quote object
-  const newQuote = {
-    id: quoteId,
-    quote: content,
-  };
-
-  // Add the newQuote object to movieQuotesDb
-
-  movieQuotesDb[quoteId] = newQuote;
-
-  return quoteId;
-};
-
-const updateQuote = (quoteId, content) => {
-  // updating the quote key in the quote object
-  movieQuotesDb[quoteId].quote = content;
-
-  return true;
 };
 
 const addNewUser = (name, email, password) => {
@@ -100,7 +91,7 @@ const addNewUser = (name, email, password) => {
     id: userId,
     name,
     email,
-    password,
+    password: bcrypt.hashSync(password, salt),
   };
 
   // Add the user Object into the usersDb
@@ -130,7 +121,7 @@ const authenticateUser = (email, password) => {
   const user = findUserByEmail(email);
 
   // if we got a user back and the passwords match then return the userObj
-  if (user && user.password === password) {
+  if (user && bcrypt.compareSync(password, user.password)) {
     // user is authenticated
     return user;
   } else {
@@ -163,7 +154,7 @@ app.post('/register', (req, res) => {
   if (!user) {
     const userId = addNewUser(name, email, password);
     // setCookie with the user id
-    res.cookie('user_id', userId);
+    req.session['user_id'] = userId;
 
     // redirect to /quotes
     res.redirect('/quotes');
@@ -195,7 +186,7 @@ app.post('/login', (req, res) => {
 
   // if authenticated, set cookie with its user id and redirect
   if (user) {
-    res.cookie('user_id', user.id);
+    req.session['user_id'] = user.id;
     res.redirect('/quotes');
   } else {
     // otherwise we send an error message
@@ -210,113 +201,5 @@ app.post('/logout', (req, res) => {
   // redirect to /quotes
   res.redirect('/quotes');
 });
-
-// CRUD operations
-
-// List all the quotes
-// READ
-// GET /quotes
-
-app.get('/quotes', (req, res) => {
-
-
-  const quoteList = Object.values(movieQuotesDb);
-
-  // get the current user
-  // read the user id value from the cookies
-
-  const userId = req.cookies['user_id'];
-
-  const loggedInUser = usersDb[userId];
-
-  const templateVars = { quotesArr: quoteList, currentUser: loggedInUser };
-
-  res.render('quotes', templateVars);
-});
-
-// Display the add quote form
-// READ
-// GET /quotes/new
-
-app.get('/quotes/new', (req, res) => {
-  // get the current user
-  // read the user id value from the cookies
-
-  const userId = req.cookies['user_id'];
-
-  const loggedInUser = usersDb[userId];
-
-  const templateVars = { currentUser: loggedInUser };
-
-  res.render('new_quote', templateVars);
-});
-
-// Add a new quote
-// CREATE
-// POST /quotes
-
-app.post('/quotes', (req, res) => {
-  // extract the quote content from the form.
-  // content of the form is contained in an object call req.body
-  // req.body is given by the bodyParser middleware
-  const quoteStr = req.body.quoteContent;
-
-  // Add a new quote in movieQuotesDb
-
-  createNewQuote(quoteStr);
-
-  // redirect to '/quotes'
-  res.redirect('/quotes');
-});
-
-// Edit a quote
-
-// Display the form
-// GET /quotes/:id
-app.get('/quotes/:id', (req, res) => {
-  const quoteId = req.params.id;
-  // get the current user
-  // read the user id value from the cookies
-
-  const userId = req.cookies['user_id'];
-
-  const loggedInUser = usersDb[userId];
-  const templateVars = {
-    quoteObj: movieQuotesDb[quoteId],
-    currentUser: loggedInUser,
-  };
-
-  // render the show page
-  res.render('quote_show', templateVars);
-});
-
-// Update the quote in the movieQuotesDb
-// PUT /quotes/:id
-
-app.post('/quotes/:id', (req, res) => {
-  // Extract the  id from the url
-  const quoteId = req.params.id;
-
-  // Extract the content from the form
-  const quoteStr = req.body.quoteContent;
-
-  // Update the quote in movieQuotesDb
-
-  updateQuote(quoteId, quoteStr);
-
-  // redirect to '/quotes'
-  res.redirect('/quotes');
-});
-
-// DELETE
-app.post('/quotes/:id/delete', (req, res) => {
-  const quoteId = req.params.id;
-
-  delete movieQuotesDb[quoteId];
-
-  res.redirect('/quotes');
-});
-
-// Delete the quote
 
 app.listen(PORT, () => console.log(`Server is running at port ${PORT}`));
